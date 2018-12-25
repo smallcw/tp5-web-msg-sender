@@ -3,6 +3,9 @@ tp5-web-msg-sender tp5示例
 
 下载安装
 ======
+git clone https://github.com/smallcw/tp5-web-msg-sender
+
+另附下载地址：
 ![tp5-web-msg-sender](http://www.daliycode.com/codes-15-90.html)
 
 
