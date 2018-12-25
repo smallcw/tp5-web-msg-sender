@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link href="/static/main.css" rel="stylesheet" type="text/css" />
+<script src='https://cdn.bootcss.com/socket.io/2.0.3/socket.io.js'></script>
+<script src='//cdn.bootcss.com/jquery/1.11.3/jquery.js'></script>
+<script src='/static/notify.js'></script>
+</head>
+<body>
+
+<div class="notification sticky content hide">
+    <p id="content"> </p>
+    <a class="close" href="javascript:"> <img src="/static/icon-close.png" /></a>
+</div>
+<div class="notification notice hide">
+    <p id="notice"> </p>
+    <a class="close" href="javascript:"> <img src="/static/icon-close.png" /></a>
+</div>
+<div class="wrapper">
+    <div style="width:850px;">
+    <h3>介绍:</h3>
+    <b>tp5-web-msg-sender</b>是Web消息实时推送 Web-msg-sender tp5 demo版，基于<a rel="nofollow" href="https://github.com/walkor/phpsocket.io">PHPSocket.IO</a><br><br><br>
+    <h3>支持以下特性：</h3>
+    <ul>
+      <li>多浏览器支持</li>
+      <li>支持针对单个用户推送消息</li>
+      <li>支持向所有用户推送消息</li>
+      <li>长连接推送（websocket或者comet），消息即时到达</li>
+      <li>支持在线用户数实时统计推送（见页脚统计）</li>
+      <li>支持在线页面数实时统计推送（见页脚统计）</li>
+    </ul>
+    <h3>发送消息示例:</h3>
+    <p>前端直接get请求到workerman</p>
+    当前用户uid：<b class="uid"></b><br>
+    可以通过url：<br>
+    <a id="send_to_one" href="http://localhost:2121/?type=publish&to=1445590039000&content=%E6%B6%88%E6%81%AF%E5%86%85%E5%AE%B9" target="_blank"><font style="color:#91BD09">http://<font class="domain"></font>:2121?type=publish&to=<b class="uid"></b>&content=消息内容</font></a>  向当前用户发送消息<br>
+    <a href="http://localhost:2121/?type=publish&to=&content=%E6%B6%88%E6%81%AF%E5%86%85%E5%AE%B9" target="_blank"  id="send_to_all" ><font style="color:#91BD09">http://<font class="domain"></font>:2121?type=publish&to=&content=消息内容</font></a> 向所有在线用户推送消息<br><br>
+
+    <h3>后端推送示例：</h3>
+    <p>推送地址：/index.php/index/index/push</p>
+    <p>参数：<br>
+    to_uid  推送用户(为空向所有用户推送) <br>
+    data    推送数据</p>
+    <form>
+        <p>推送用户: （默认推送给自己，还可以打开一个谷歌无痕窗口，复制uid发送消息）</p>
+        <div>
+            <input type="text" style="width: 300px;height: 30px;" name="to_uid" id="to_uid" placeholder="推送的用户"><span>  还可以复制下方其他在线用户uid直接给他发消息哟</span></div>
+        <p>推送数据:</p>
+        <div style="margin-top: 10px;">
+            <textarea name="data" style="width: 300px;height: 70px;" id="data" placeholder="推送的内容"></textarea></div>
+        <div style="margin-top: 20px;">
+            <button class="blue button">提交</button></div>
+    </form>
+
+    <h3>在线用户统计：</h3>
+    <div id="users"></div>
+    <script>
+        // 使用时替换成真实的uid，这里方便演示使用时间戳
+        //var uid = Date.parse(new Date());
+        {php}session('l',1);{/php}
+        var uid = "{:session_id()}";
+        $('#send_to_one').attr('href', 'http://'+document.domain+':2121/?type=publish&content=%E6%B6%88%E6%81%AF%E5%86%85%E5%AE%B9&to='+uid);
+        $('.uid').html(uid);
+        $('#send_to_all').attr('href', 'http://'+document.domain+':2121/?type=publish&content=%E6%B6%88%E6%81%AF%E5%86%85%E5%AE%B9');
+        $('.uid').html(uid);
+        $('.domain').html(document.domain);
+        $('#to_uid').val(uid);
+        $('#data').val('默认内容：www.daliycode.com');
+    </script>
+</div>
+
+<script>
+$(document).ready(function () {
+    // 连接服务端
+    var socket = io('http://'+document.domain+':2120'),f=0;
+    // 连接后登录
+    socket.on('connect', function(){
+        socket.emit('login', uid);
+    });
+    //3次连接失败，关闭连接，可上报统计
+    socket.on('connect_error', (error) => {
+        f++;
+        f>=3 && socket.close();
+        console.log('connect fail');
+    });
+    // 后端推送来消息时
+    socket.on('new_msg', function(msg){
+         $('#content').html('收到消息：'+msg);
+         $('.notification.content').notify();
+    });
+    // 后端推送来在线数据时
+    socket.on('update_online_count', function(online_stat){
+        $('#online_box').html(online_stat);
+    });
+
+    // 后端推送来在线用户数据
+    socket.on('user_data', function(data){
+        var html='';
+        $.each(data,function(id,page){
+            var is_me = uid == id?'（这是我！）':'';
+            html += '<p>uid：'+id+'  打开页面'+page+'个。'+is_me+'</p>';
+            $('#users').html(html)
+        })
+    });
+
+    $('form').on('click','button',function(){
+        $.post('/index.php/index/index/push', {
+            to_uid:$('#to_uid').val(),
+            data:$('#data').val(),
+        }, function(d){
+            console.log(d);
+            $('#notice').html(d.msg);
+            $('.notification.notice').notify();
+        })
+        return false;
+    })
+});
+</script>
+<div id="footer">
+<center id="online_box"></center>
+<center><p style="font-size:11px;color:#555;"> author: <a href="http://www.daliycode.com/" target="_blank"><strong>daliycode.com!</strong></a></p></center>
+</div>
+</body>
+</html>
