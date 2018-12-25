@@ -3,7 +3,7 @@ tp5-web-msg-sender tp5示例
 
 下载安装
 ======
-![tp5-web-msg-sender](http://www.daliycode.com/codes-15-90.html)
+git clone https://github.com/smallcw/tp5-web-msg-sender
 
 
 效果演示
@@ -67,4 +67,4 @@ workerman相关参见 [www.workerman.net](http://www.workerman.net/)
 =================
 
 
-author: daliycode.com
+author: [daliycode.com](http://www.daliycode.com/)
